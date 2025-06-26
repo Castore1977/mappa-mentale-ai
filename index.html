@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generatore di Mappe Mentali</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" integrity="sha512-BNaRQnYJYiPSqHHDb58B0yaPfCu+Wgds8Gp/gU33kqBtgNS4tSPHuGibyoVBL5gI9kLmbG0CbnwFDEr4VR1HbA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .loader-spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #ec4899; /* Colore pastello */
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* --- Stili per la Mappa Mentale HTML --- */
+        .mind-map-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 2rem;
+            border-radius: 1rem;
+            min-height: 400px;
+            position: relative;
+            overflow: hidden;
+            width: 100%;
+        }
+
+        .central-topic {
+            padding: 1rem 1.5rem;
+            border-radius: 0.75rem;
+            font-weight: 700;
+            font-size: 1.25rem;
+            text-align: center;
+            z-index: 10;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            position: relative;
+            margin-bottom: 4rem;
+        }
+
+        .branches-container {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 2rem 4rem;
+            width: 100%;
+        }
+        
+        .main-branch {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+        }
+
+        .main-branch-title {
+            padding: 0.75rem 1.25rem;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            font-size: 1rem;
+            text-align: center;
+            box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+        }
+
+        .sub-branches-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-top: 1.5rem;
+            padding-left: 1rem;
+            border-left: 2px solid;
+        }
+
+        .sub-branch {
+            padding: 0.5rem 1rem;
+            margin-top: 0.5rem;
+            border-radius: 0.375rem;
+            font-size: 0.875rem;
+        }
+        
+        .main-branch::before {
+            content: '';
+            position: absolute;
+            top: -2rem;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 2px;
+            height: 2rem;
+            background-color: #cbd5e1;
+        }
+
+        /* --- Temi di Stile --- */
+        .style-colorful { background-color: #f0f9ff; }
+        .style-colorful .central-topic { background-color: #2563eb; color: white; }
+        .style-colorful .main-branch-title { background-color: #3b82f6; color: white; }
+        .style-colorful .sub-branches-container { border-color: #93c5fd; }
+        .style-colorful .sub-branch { background-color: #dbeafe; color: #1e3a8a; }
+        .style-colorful .main-branch::before { background-color: #93c5fd; }
+
+        .style-minimalist { background-color: #ffffff; border: 1px solid #e5e7eb; }
+        .style-minimalist .central-topic { background-color: #111827; color: white; border-radius: 9999px; }
+        .style-minimalist .main-branch-title { background-color: #f3f4f6; color: #1f2937; border: 1px solid #d1d5db; }
+        .style-minimalist .sub-branches-container { border-color: #d1d5db; }
+        .style-minimalist .sub-branch { background-color: transparent; color: #4b5563; }
+        .style-minimalist .main-branch::before { background-color: #d1d5db; }
+        
+        .style-professional { background-color: #f8fafc; }
+        .style-professional .central-topic { background-color: #1e40af; color: white; }
+        .style-professional .main-branch-title { background-color: #374151; color: white; }
+        .style-professional .sub-branches-container { border-color: #9ca3af; }
+        .style-professional .sub-branch { background-color: #e5e7eb; color: #374151; }
+        .style-professional .main-branch::before { background-color: #9ca3af; }
+        
+        .style-creative { background-color: #fffbeb; font-family: 'Comic Sans MS', cursive; }
+        .style-creative .central-topic { background-color: #f59e0b; color: #422006; border-radius: 1rem; transform: rotate(-2deg); }
+        .style-creative .main-branch-title { background-color: #fcd34d; color: #78350f; border-radius: 0.75rem; transform: rotate(1deg); }
+        .style-creative .sub-branches-container { border-style: dashed; border-color: #fdba74; }
+        .style-creative .sub-branch { background-color: #fef3c7; color: #92400e; }
+        .style-creative .main-branch::before { background-color: #fdba74; }
+
+        .style-technical { background-color: #f3f4f6; font-family: 'Courier New', monospace; }
+        .style-technical .central-topic, .style-technical .main-branch-title, .style-technical .sub-branch { border: 1px solid #6b7280; border-radius: 0; }
+        .style-technical .central-topic { background-color: #1f2937; color: #d1d5db; }
+        .style-technical .main-branch-title { background-color: #4b5563; color: #e5e7eb; }
+        .style-technical .sub-branches-container { border-color: #6b7280; }
+        .style-technical .sub-branch { background-color: #d1d5db; color: #1f2937; }
+        .style-technical .main-branch::before { background-color: #6b7280; }
+        
+        .style-futuristic { background-color: #0c0a09; color: #a7f3d0; text-shadow: 0 0 5px #34d399; }
+        .style-futuristic .central-topic { background: #15803d; border: 1px solid #6ee7b7; }
+        .style-futuristic .main-branch-title { background: #166534; border: 1px solid #34d399; }
+        .style-futuristic .sub-branches-container { border-color: #34d399; }
+        .style-futuristic .sub-branch { background-color: #052e16; }
+        .style-futuristic .main-branch::before { background-color: #34d399; }
+    </style>
+</head>
+<body class="bg-sky-50 text-slate-800">
+
+    <div class="container mx-auto max-w-4xl p-4 sm:p-6 md:p-8">
+        <header class="text-center mb-8">
+            <h1 class="text-3xl sm:text-4xl font-bold text-sky-800">Generatore di Mappe Mentali</h1>
+            <p class="mt-2 text-sky-600">Trasforma testi o idee in mappe mentali chiare e visivamente accattivanti.</p>
+        </header>
+
+        <main class="bg-white p-6 sm:p-8 rounded-2xl shadow-xl border border-sky-100">
+            
+            <div class="space-y-6">
+                <div>
+                    <label class="block text-lg font-semibold mb-2 text-sky-700">1. Scegli il tipo di input</label>
+                    <div class="flex items-center space-x-6">
+                        <label class="flex items-center cursor-pointer">
+                            <input type="radio" name="inputType" value="text" class="h-4 w-4 text-rose-500 border-gray-300 focus:ring-rose-400" checked>
+                            <span class="ml-2 text-slate-700">Incolla Testo</span>
+                        </label>
+                        <label class="flex items-center cursor-pointer">
+                            <input type="radio" name="inputType" value="search" class="h-4 w-4 text-rose-500 border-gray-300 focus:ring-rose-400">
+                            <span class="ml-2 text-slate-700">Ricerca Web</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div id="input-container">
+                    <div id="text-input-area">
+                        <label for="user-text" class="block text-lg font-semibold mb-2 text-sky-700">2. Inserisci il tuo testo</label>
+                        <textarea id="user-text" rows="8" class="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-rose-400 focus:border-rose-400 transition-shadow" placeholder="Incolla qui un articolo, i tuoi appunti o una descrizione dettagliata..."></textarea>
+                    </div>
+                    <div id="search-input-area" class="hidden">
+                        <label for="search-query" class="block text-lg font-semibold mb-2 text-sky-700">2. Cerca un argomento</label>
+                        <input type="text" id="search-query" class="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-rose-400 focus:border-rose-400 transition-shadow" placeholder="Es: 'Le equazioni di primo grado'">
+                    </div>
+                </div>
+
+                <div id="search-result-container" class="hidden mt-4 space-y-2">
+                    <label for="generated-text" class="block text-lg font-semibold text-sky-700">Testo generato dalla ricerca (puoi modificarlo)</label>
+                    <textarea id="generated-text" rows="8" class="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-rose-400 focus:border-rose-400 transition-shadow"></textarea>
+                </div>
+
+                <div>
+                    <label for="style-select" class="block text-lg font-semibold mb-2 text-sky-700">3. Scegli uno stile predefinito</label>
+                    <select id="style-select" class="w-full p-3 border border-slate-300 rounded-lg bg-white focus:ring-2 focus:ring-rose-400 focus:border-rose-400 transition-shadow">
+                        <option value="style-colorful" selected>Colorata e Vivace</option>
+                        <option value="style-minimalist">Minimale</option>
+                        <option value="style-professional">Professionale</option>
+                        <option value="style-creative">Creativa / Disegnata a mano</option>
+                        <option value="style-technical">Tecnica / Schematica</option>
+                        <option value="style-futuristic">Futuristica / Neon</option>
+                    </select>
+                </div>
+                
+                <div>
+                    <button id="initial-generate-btn" class="w-full bg-rose-500 text-white font-bold py-3 px-6 rounded-lg hover:bg-rose-600 focus:outline-none focus:ring-4 focus:ring-rose-300 transition-all shadow-md hover:shadow-lg disabled:bg-slate-400 disabled:cursor-not-allowed">
+                        Genera Mappa Mentale
+                    </button>
+                </div>
+            </div>
+
+            <div id="loader" class="hidden flex-col items-center justify-center mt-8 p-6 text-center">
+                <div class="loader-spinner"></div>
+                <p id="loader-text" class="mt-4 text-slate-600 font-semibold">Elaborazione in corso...</p>
+            </div>
+
+            <div id="output-section" class="mt-10">
+                </div>
+        </main>
+        
+        <footer class="text-center mt-8 text-sm text-sky-500">
+            <p>Creato con l'assistenza dell'IA di Google.</p>
+        </footer>
+    </div>
+    
+    <div id="error-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-lg shadow-xl p-6 max-w-sm w-full text-center">
+            <h3 class="text-xl font-bold text-red-600 mb-4">Errore</h3>
+            <p id="error-message" class="text-slate-700 mb-6">Si è verificato un problema.</p>
+            <button id="close-modal-btn" class="bg-red-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-red-600 transition-colors">Chiudi</button>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const generateBtn = document.getElementById('initial-generate-btn');
+            const loader = document.getElementById('loader');
+            const loaderText = document.getElementById('loader-text');
+            const outputSection = document.getElementById('output-section');
+            
+            const inputTypeRadios = document.querySelectorAll('input[name="inputType"]');
+            const textInputArea = document.getElementById('text-input-area');
+            const searchInputArea = document.getElementById('search-input-area');
+            const searchResultContainer = document.getElementById('search-result-container');
+            
+            const userText = document.getElementById('user-text');
+            const searchQuery = document.getElementById('search-query');
+            const generatedText = document.getElementById('generated-text');
+            
+            const styleSelect = document.getElementById('style-select');
+
+            const errorModal = document.getElementById('error-modal');
+            const errorMessage = document.getElementById('error-message');
+            const closeModalBtn = document.getElementById('close-modal-btn');
+            
+            let currentMindMapStructure = null;
+
+            // --- Gestione UI ---
+            inputTypeRadios.forEach(radio => {
+                radio.addEventListener('change', () => {
+                    if (radio.value === 'text') {
+                        textInputArea.classList.remove('hidden');
+                        searchInputArea.classList.add('hidden');
+                        searchResultContainer.classList.add('hidden');
+                    } else {
+                        textInputArea.classList.add('hidden');
+                        searchInputArea.classList.remove('hidden');
+                    }
+                });
+            });
+
+            closeModalBtn.addEventListener('click', () => {
+                errorModal.classList.add('hidden');
+            });
+            
+            outputSection.addEventListener('click', (e) => {
+                if (!e.target) return;
+                if (e.target.id === 'regenerate-btn') {
+                    handleRegeneration();
+                } else if (e.target.id === 'export-btn') {
+                    exportMapAsJPEG();
+                }
+            });
+
+            function showError(message, isRegenerating = false) {
+                errorMessage.textContent = message;
+                errorModal.classList.remove('hidden');
+                loader.classList.add('hidden');
+                if (!isRegenerating) {
+                    generateBtn.disabled = false;
+                }
+            }
+            
+            // --- Logica Principale ---
+            generateBtn.addEventListener('click', handleInitialGeneration);
+            
+            async function handleInitialGeneration() {
+                generateBtn.disabled = true;
+                outputSection.innerHTML = '';
+                loader.classList.remove('hidden');
+                
+                const inputType = document.querySelector('input[name="inputType"]:checked').value;
+                let textForAnalysis;
+
+                try {
+                    if (inputType === 'text') {
+                        loaderText.textContent = 'Analizzo il testo...';
+                        searchResultContainer.classList.add('hidden');
+                        textForAnalysis = userText.value.trim();
+                        if (!textForAnalysis) {
+                           throw new Error("Il testo da analizzare non può essere vuoto.");
+                        }
+                    } else {
+                        loaderText.textContent = 'Eseguo la ricerca e sintetizzo i risultati...';
+                        const query = searchQuery.value.trim();
+                        if (!query) {
+                            throw new Error("Per favore, inserisci un termine di ricerca.");
+                        }
+                        textForAnalysis = await generateTextFromSearchQuery(query);
+                        generatedText.value = textForAnalysis;
+                        searchResultContainer.classList.remove('hidden');
+                    }
+                    
+                    loaderText.textContent = 'Analizzo la struttura del testo...';
+                    currentMindMapStructure = await getMindMapStructure(textForAnalysis);
+                    
+                    displayHtmlMindMap(currentMindMapStructure);
+
+                } catch (error) {
+                    showError(error.message);
+                } finally {
+                    generateBtn.disabled = false;
+                    loader.classList.add('hidden');
+                }
+            }
+            
+            async function handleRegeneration() {
+                const inputType = document.querySelector('input[name="inputType"]:checked').value;
+                let textForAnalysis = (inputType === 'search') ? generatedText.value.trim() : userText.value.trim();
+                
+                if (!textForAnalysis) {
+                    showError("Nessun testo disponibile per la rigenerazione.", true);
+                    return;
+                }
+
+                loader.classList.remove('hidden');
+                loaderText.textContent = 'Rielaboro e applico il nuovo stile...';
+                
+                try {
+                    // Non è necessario rigenerare il testo, solo la struttura
+                    currentMindMapStructure = await getMindMapStructure(textForAnalysis);
+                    displayHtmlMindMap(currentMindMapStructure);
+                } catch (error) {
+                    showError(error.message, true);
+                } finally {
+                    loader.classList.add('hidden');
+                }
+            }
+            
+            async function exportMapAsJPEG() {
+                const mapContainer = document.querySelector('.mind-map-container');
+                if (!mapContainer) {
+                    showError("Nessuna mappa da esportare.");
+                    return;
+                }
+                
+                loader.classList.remove('hidden');
+                loaderText.textContent = 'Creo l\'immagine JPEG...';
+
+                try {
+                    const canvas = await html2canvas(mapContainer, {
+                        scale: 2, // Aumenta la risoluzione per una qualità migliore
+                        backgroundColor: null, // Usa lo sfondo del tema
+                        useCORS: true
+                    });
+                    
+                    const jpegUrl = canvas.toDataURL('image/jpeg', 0.95); // Qualità 95%
+                    
+                    const link = document.createElement('a');
+                    link.href = jpegUrl;
+                    link.download = 'mappa-mentale.jpeg';
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                } catch (error) {
+                    console.error("Errore durante l'esportazione:", error);
+                    showError("Impossibile esportare la mappa come JPEG.");
+                } finally {
+                    loader.classList.add('hidden');
+                }
+            }
+
+            // --- Chiamate API (MODIFICATE PER LA SICUREZZA) ---
+        
+            async function generateTextFromSearchQuery(query) {
+                // Ora chiama il nostro endpoint sicuro
+                const response = await fetch('/api/generate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ query: query }) // Invia la query di ricerca
+                });
+
+                if (!response.ok) {
+                    const err = await response.json();
+                    throw new Error(err.error || "Errore durante la ricerca.");
+                }
+                return await response.text();
+            }
+            
+            async function getMindMapStructure(text) {
+                // Ora chiama il nostro endpoint sicuro
+                const response = await fetch('/api/generate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text: text }) // Invia il testo da analizzare
+                });
+                
+                if (!response.ok) {
+                    const err = await response.json();
+                    throw new Error(err.error || "Errore durante l'analisi della struttura.");
+                }
+                // La risposta dal nostro backend è già il testo JSON, quindi lo parsiamo
+                const resultText = await response.text();
+                return JSON.parse(resultText);
+            }
+
+            // --- Rendering della Mappa HTML ---
+            function displayHtmlMindMap(structure) {
+                outputSection.innerHTML = '';
+                if (!structure) return;
+
+                const styleClass = styleSelect.value;
+
+                const mapContainer = document.createElement('div');
+                mapContainer.className = `mind-map-container ${styleClass}`;
+
+                const centralDiv = document.createElement('div');
+                centralDiv.className = 'central-topic';
+                centralDiv.textContent = structure.centralTopic;
+                mapContainer.appendChild(centralDiv);
+
+                const branchesContainer = document.createElement('div');
+                branchesContainer.className = 'branches-container';
+                
+                (structure.mainBranches || []).forEach(branchData => {
+                    const mainBranchDiv = document.createElement('div');
+                    mainBranchDiv.className = 'main-branch';
+                    const branchTitle = document.createElement('div');
+                    branchTitle.className = 'main-branch-title';
+                    branchTitle.textContent = branchData.title;
+                    mainBranchDiv.appendChild(branchTitle);
+                    if (branchData.subBranches && branchData.subBranches.length > 0) {
+                        const subBranchesContainer = document.createElement('div');
+                        subBranchesContainer.className = 'sub-branches-container';
+                        branchData.subBranches.forEach(subBranchText => {
+                            const subBranchDiv = document.createElement('div');
+                            subBranchDiv.className = 'sub-branch';
+                            subBranchDiv.textContent = subBranchText;
+                            subBranchesContainer.appendChild(subBranchDiv);
+                        });
+                        mainBranchDiv.appendChild(subBranchesContainer);
+                    }
+                    branchesContainer.appendChild(mainBranchDiv);
+                });
+                mapContainer.appendChild(branchesContainer);
+
+                const resultContainer = document.createElement('div');
+                resultContainer.className = 'p-4 bg-sky-100/50 rounded-lg border-2 border-dashed border-sky-200 space-y-4';
+                const title = document.createElement('h3');
+                title.textContent = "Ecco la tua Mappa Mentale";
+                title.className = "text-xl font-semibold text-center text-sky-800";
+                
+                const buttonsWrapper = document.createElement('div');
+                buttonsWrapper.className = "grid grid-cols-1 md:grid-cols-2 gap-4";
+
+                const regenerateBtn = document.createElement('button');
+                regenerateBtn.id = 'regenerate-btn';
+                regenerateBtn.textContent = 'Applica Stile / Rigenera';
+                regenerateBtn.className = 'w-full bg-teal-500 text-white font-bold py-3 px-4 rounded-lg hover:bg-teal-600 focus:outline-none focus:ring-4 focus:ring-teal-300 transition-all shadow-md';
+                
+                const exportBtn = document.createElement('button');
+                exportBtn.id = 'export-btn';
+                exportBtn.textContent = 'Esporta in JPEG';
+                exportBtn.className = 'w-full bg-indigo-500 text-white font-bold py-3 px-4 rounded-lg hover:bg-indigo-600 focus:outline-none focus:ring-4 focus:ring-indigo-300 transition-all shadow-md';
+                
+                buttonsWrapper.appendChild(regenerateBtn);
+                buttonsWrapper.appendChild(exportBtn);
+
+                resultContainer.appendChild(title);
+                resultContainer.appendChild(mapContainer);
+                resultContainer.appendChild(buttonsWrapper);
+                outputSection.appendChild(resultContainer);
+            }
+        });
+    </script>
+
+</body>
+</html>
