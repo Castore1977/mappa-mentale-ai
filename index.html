@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Generatore di Mappe Mentali</title>
+    <title>Generatore di Mappe Concettuali Avanzato</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" integrity="sha512-BNaRQnYJYiPSqHHDb58B0yaPfCu+Wgds8Gp/gU33kqBtgNS4tSPHuGibyoeqMV/TJlSKda6FXzoEyYGjTe+vXA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" xintegrity="sha512-BNaRQnYJYiPSqHHDb58B0yaPfCu+Wgds8Gp/gU33kqBtgNS4tSPHuGibyoeqMV/TJlSKda6FXzoEyYGjTe+vXA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -15,7 +15,7 @@
         }
         .loader-spinner {
             border: 4px solid #f3f3f3;
-            border-top: 4px solid #ec4899; /* Colore pastello */
+            border-top: 4px solid #ec4899;
             border-radius: 50%;
             width: 40px;
             height: 40px;
@@ -26,7 +26,7 @@
             100% { transform: rotate(360deg); }
         }
 
-        /* --- Stili per la Mappa Mentale HTML --- */
+        /* --- Stili Base Mappa --- */
         .mind-map-container {
             display: flex;
             flex-direction: column;
@@ -35,10 +35,9 @@
             border-radius: 1rem;
             min-height: 400px;
             position: relative;
-            overflow: hidden;
+            overflow: auto;
             width: 100%;
         }
-
         .central-topic {
             padding: 1rem 1.5rem;
             border-radius: 0.75rem;
@@ -50,7 +49,6 @@
             position: relative;
             margin-bottom: 4rem;
         }
-
         .branches-container {
             display: flex;
             justify-content: center;
@@ -58,14 +56,12 @@
             gap: 2rem 4rem;
             width: 100%;
         }
-        
         .main-branch {
             display: flex;
             flex-direction: column;
             align-items: center;
             position: relative;
         }
-
         .main-branch-title {
             padding: 0.75rem 1.25rem;
             border-radius: 0.5rem;
@@ -74,7 +70,6 @@
             text-align: center;
             box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
         }
-
         .sub-branches-container {
             display: flex;
             flex-direction: column;
@@ -83,14 +78,12 @@
             padding-left: 1rem;
             border-left: 2px solid;
         }
-
         .sub-branch {
             padding: 0.5rem 1rem;
             margin-top: 0.5rem;
             border-radius: 0.375rem;
             font-size: 0.875rem;
         }
-        
         .main-branch::before {
             content: '';
             position: absolute;
@@ -102,7 +95,7 @@
             background-color: #cbd5e1;
         }
 
-        /* --- Temi di Stile --- */
+        /* --- Temi di Stile Predefiniti --- */
         .style-colorful { background-color: #f0f9ff; }
         .style-colorful .central-topic { background-color: #2563eb; color: white; }
         .style-colorful .main-branch-title { background-color: #3b82f6; color: white; }
@@ -151,8 +144,8 @@
 
     <div class="container mx-auto max-w-4xl p-4 sm:p-6 md:p-8">
         <header class="text-center mb-8">
-            <h1 class="text-3xl sm:text-4xl font-bold text-sky-800">Generatore di Mappe Mentali</h1>
-            <p class="mt-2 text-sky-600">Trasforma testi o idee in mappe mentali chiare e visivamente accattivanti.</p>
+            <h1 class="text-3xl sm:text-4xl font-bold text-sky-800">Generatore di Mappe Concettuali Avanzato</h1>
+            <p class="mt-2 text-sky-600">Trasforma testi, idee o ricerche in mappe concettuali chiare e personalizzate.</p>
         </header>
 
         <main class="bg-white p-6 sm:p-8 rounded-2xl shadow-xl border border-sky-100">
@@ -176,6 +169,13 @@
                     <div id="text-input-area">
                         <label for="user-text" class="block text-lg font-semibold mb-2 text-sky-700">2. Inserisci il tuo testo</label>
                         <textarea id="user-text" rows="8" class="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-rose-400 focus:border-rose-400 transition-shadow" placeholder="Incolla qui un articolo, i tuoi appunti o una descrizione dettagliata..."></textarea>
+                        <button id="summarize-btn" class="mt-2 bg-blue-500 text-white font-semibold py-2 px-4 rounded-lg hover:bg-blue-600 focus:outline-none focus:ring-4 focus:ring-blue-300 transition-all text-sm flex items-center justify-center disabled:bg-blue-400">
+                            <span id="summarize-btn-text">Sintetizza Testo</span>
+                            <svg id="summarize-spinner" class="animate-spin -mr-1 ml-3 h-5 w-5 text-white hidden" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                        </button>
                     </div>
                     <div id="search-input-area" class="hidden">
                         <label for="search-query" class="block text-lg font-semibold mb-2 text-sky-700">2. Cerca un argomento</label>
@@ -183,13 +183,31 @@
                     </div>
                 </div>
 
+                <div id="summary-container" class="hidden mt-4 space-y-2">
+                    <label for="summarized-text" class="block text-lg font-semibold text-sky-700">Testo Sintetizzato (modificabile)</label>
+                    <p class="text-sm text-slate-500">L'app userà questo testo per generare la mappa. Puoi modificarlo o cancellarlo per usare il testo originale.</p>
+                    <textarea id="summarized-text" rows="8" class="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-rose-400 focus:border-rose-400 transition-shadow"></textarea>
+                </div>
+
                 <div id="search-result-container" class="hidden mt-4 space-y-2">
-                    <label for="generated-text" class="block text-lg font-semibold text-sky-700">Testo generato dalla ricerca (puoi modificarlo)</label>
+                    <label for="generated-text" class="block text-lg font-semibold text-sky-700">Testo generato (puoi modificarlo)</label>
                     <textarea id="generated-text" rows="8" class="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-rose-400 focus:border-rose-400 transition-shadow"></textarea>
                 </div>
 
+                <div class="space-y-4 pt-4 border-t border-slate-200">
+                     <h3 class="text-lg font-semibold text-sky-700">3. Personalizza la Mappa (Opzionale)</h3>
+                    <div>
+                        <label for="key-concepts" class="block text-md font-medium mb-1 text-slate-600">Concetti Chiave da Includere</label>
+                        <textarea id="key-concepts" rows="2" class="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-rose-400" placeholder="Elenca qui i concetti o argomenti che vuoi evidenziare..."></textarea>
+                    </div>
+                    <div>
+                        <label for="graphic-instructions" class="block text-md font-medium mb-1 text-slate-600">Istruzioni Grafiche</label>
+                        <textarea id="graphic-instructions" rows="2" class="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-rose-400" placeholder="Descrivi come vuoi la mappa. Es: 'Usa forme arrotondate, evidenzia il ramo delle conclusioni in verde'"></textarea>
+                    </div>
+                </div>
+
                 <div>
-                    <label for="style-select" class="block text-lg font-semibold mb-2 text-sky-700">3. Scegli uno stile predefinito</label>
+                    <label for="style-select" class="block text-lg font-semibold mb-2 text-sky-700">4. Scegli uno stile di base</label>
                     <select id="style-select" class="w-full p-3 border border-slate-300 rounded-lg bg-white focus:ring-2 focus:ring-rose-400 focus:border-rose-400 transition-shadow">
                         <option value="style-colorful" selected>Colorata e Vivace</option>
                         <option value="style-minimalist">Minimale</option>
@@ -202,7 +220,7 @@
                 
                 <div>
                     <button id="initial-generate-btn" class="w-full bg-rose-500 text-white font-bold py-3 px-6 rounded-lg hover:bg-rose-600 focus:outline-none focus:ring-4 focus:ring-rose-300 transition-all shadow-md hover:shadow-lg disabled:bg-slate-400 disabled:cursor-not-allowed">
-                        Genera Mappa Mentale
+                        Genera Mappa Concettuale
                     </button>
                 </div>
             </div>
@@ -229,8 +247,9 @@
         </div>
     </div>
 
-    <script>
+    <script type="module">
         document.addEventListener('DOMContentLoaded', () => {
+            // --- Selezione Elementi DOM ---
             const generateBtn = document.getElementById('initial-generate-btn');
             const loader = document.getElementById('loader');
             const loaderText = document.getElementById('loader-text');
@@ -245,36 +264,38 @@
             const searchQuery = document.getElementById('search-query');
             const generatedText = document.getElementById('generated-text');
             
-            const styleSelect = document.getElementById('style-select');
+            const summarizeBtn = document.getElementById('summarize-btn');
+            const keyConceptsInput = document.getElementById('key-concepts');
+            const graphicInstructionsInput = document.getElementById('graphic-instructions');
 
+            const summarizeBtnText = document.getElementById('summarize-btn-text');
+            const summarizeSpinner = document.getElementById('summarize-spinner');
+            const summaryContainer = document.getElementById('summary-container');
+            const summarizedText = document.getElementById('summarized-text');
+
+            const styleSelect = document.getElementById('style-select');
             const errorModal = document.getElementById('error-modal');
             const errorMessage = document.getElementById('error-message');
             const closeModalBtn = document.getElementById('close-modal-btn');
             
-            let currentMindMapStructure = null;
-
             // --- Gestione UI ---
             inputTypeRadios.forEach(radio => {
                 radio.addEventListener('change', () => {
-                    if (radio.value === 'text') {
-                        textInputArea.classList.remove('hidden');
-                        searchInputArea.classList.add('hidden');
-                        searchResultContainer.classList.add('hidden');
-                    } else {
-                        textInputArea.classList.add('hidden');
-                        searchInputArea.classList.remove('hidden');
-                    }
+                    const isText = radio.value === 'text';
+                    textInputArea.classList.toggle('hidden', !isText);
+                    searchInputArea.classList.toggle('hidden', isText);
+                    summarizeBtn.classList.toggle('hidden', !isText);
+                    searchResultContainer.classList.add('hidden');
+                    summaryContainer.classList.add('hidden');
                 });
             });
 
-            closeModalBtn.addEventListener('click', () => {
-                errorModal.classList.add('hidden');
-            });
+            closeModalBtn.addEventListener('click', () => errorModal.classList.add('hidden'));
             
             outputSection.addEventListener('click', (e) => {
                 if (!e.target) return;
                 if (e.target.id === 'regenerate-btn') {
-                    handleRegeneration();
+                    handleGeneration(true);
                 } else if (e.target.id === 'export-btn') {
                     exportMapAsJPEG();
                 }
@@ -290,11 +311,40 @@
             }
             
             // --- Logica Principale ---
-            generateBtn.addEventListener('click', handleInitialGeneration);
+            generateBtn.addEventListener('click', () => handleGeneration(false));
+            summarizeBtn.addEventListener('click', handleSummarize);
+
+            async function handleSummarize() {
+                const textToSummarize = userText.value.trim();
+                if (!textToSummarize) {
+                    showError("Inserisci del testo da sintetizzare.");
+                    return;
+                }
+                
+                summarizeBtn.disabled = true;
+                summarizeBtnText.textContent = 'Sintetizzo...';
+                summarizeSpinner.classList.remove('hidden');
+
+                try {
+                    const prompt = `Fornisci un riassunto conciso e ben strutturato del seguente testo, mantenendo i punti chiave e le relazioni logiche. Il riassunto deve essere ideale per essere poi trasformato in una mappa concettuale. Testo:\n\n${textToSummarize}`;
+                    const summary = await callGeminiApi(prompt);
+                    summarizedText.value = summary;
+                    summaryContainer.classList.remove('hidden');
+                } catch (error) {
+                    console.error("Errore durante la sintesi:", error);
+                    showError("Si è verificato un errore durante la sintesi del testo.");
+                } finally {
+                    summarizeBtn.disabled = false;
+                    summarizeBtnText.textContent = 'Sintetizza Testo';
+                    summarizeSpinner.classList.add('hidden');
+                }
+            }
             
-            async function handleInitialGeneration() {
-                generateBtn.disabled = true;
-                outputSection.innerHTML = '';
+            async function handleGeneration(isRegenerating = false) {
+                if (!isRegenerating) {
+                    generateBtn.disabled = true;
+                    outputSection.innerHTML = '';
+                }
                 loader.classList.remove('hidden');
                 
                 const inputType = document.querySelector('input[name="inputType"]:checked').value;
@@ -303,54 +353,47 @@
                 try {
                     if (inputType === 'text') {
                         loaderText.textContent = 'Analizzo il testo...';
-                        searchResultContainer.classList.add('hidden');
-                        textForAnalysis = userText.value.trim();
-                        if (!textForAnalysis) {
-                           throw new Error("Il testo da analizzare non può essere vuoto.");
+                        const isSummaryVisible = !summaryContainer.classList.contains('hidden');
+                        const summaryContent = summarizedText.value.trim();
+
+                        if (isSummaryVisible && summaryContent) {
+                            textForAnalysis = summaryContent;
+                        } else {
+                            textForAnalysis = userText.value.trim();
                         }
-                    } else {
-                        loaderText.textContent = 'Eseguo la ricerca e sintetizzo i risultati...';
-                        const query = searchQuery.value.trim();
-                        if (!query) {
-                            throw new Error("Per favore, inserisci un termine di ricerca.");
-                        }
-                        textForAnalysis = await generateTextFromSearchQuery(query);
-                        generatedText.value = textForAnalysis;
-                        searchResultContainer.classList.remove('hidden');
+                        
+                        if (!textForAnalysis) throw new Error("Il testo da analizzare non può essere vuoto.");
+
+                    } else { // search
+                         if (isRegenerating) {
+                            textForAnalysis = generatedText.value.trim();
+                         } else {
+                            loaderText.textContent = 'Eseguo la ricerca e sintetizzo...';
+                            const query = searchQuery.value.trim();
+                            if (!query) throw new Error("Per favore, inserisci un termine di ricerca.");
+                            
+                            const searchPrompt = `Fornisci un testo completo e ben strutturato sull'argomento: "${query}". Il testo deve essere abbastanza dettagliato da poterci creare una mappa concettuale approfondita. Spiega i concetti principali, le definizioni, gli esempi e le eventuali connessioni con altri argomenti.`;
+                            textForAnalysis = await callGeminiApi(searchPrompt);
+                            
+                            generatedText.value = textForAnalysis;
+                            searchResultContainer.classList.remove('hidden');
+                         }
                     }
                     
-                    loaderText.textContent = 'Analizzo la struttura del testo...';
-                    currentMindMapStructure = await getMindMapStructure(textForAnalysis);
+                    loaderText.textContent = 'Creo la struttura della mappa...';
+                    const keyConcepts = keyConceptsInput.value.trim();
+                    const graphicInstructions = graphicInstructionsInput.value.trim();
+
+                    const { structure, css } = await getMindMapStructureAndStyle(textForAnalysis, keyConcepts, graphicInstructions);
                     
-                    displayHtmlMindMap(currentMindMapStructure);
+                    displayHtmlMindMap(structure, css);
 
                 } catch (error) {
-                    showError(error.message);
+                    showError(error.message, isRegenerating);
                 } finally {
-                    generateBtn.disabled = false;
-                    loader.classList.add('hidden');
-                }
-            }
-            
-            async function handleRegeneration() {
-                const inputType = document.querySelector('input[name="inputType"]:checked').value;
-                let textForAnalysis = (inputType === 'search') ? generatedText.value.trim() : userText.value.trim();
-                
-                if (!textForAnalysis) {
-                    showError("Nessun testo disponibile per la rigenerazione.", true);
-                    return;
-                }
-
-                loader.classList.remove('hidden');
-                loaderText.textContent = 'Rielaboro e applico il nuovo stile...';
-                
-                try {
-                    // Non è necessario rigenerare il testo, solo la struttura
-                    currentMindMapStructure = await getMindMapStructure(textForAnalysis);
-                    displayHtmlMindMap(currentMindMapStructure);
-                } catch (error) {
-                    showError(error.message, true);
-                } finally {
+                     if (!isRegenerating) {
+                        generateBtn.disabled = false;
+                     }
                     loader.classList.add('hidden');
                 }
             }
@@ -366,17 +409,23 @@
                 loaderText.textContent = 'Creo l\'immagine JPEG...';
 
                 try {
+                    const resultContainer = document.querySelector('.result-container-class');
+                    const originalShadow = resultContainer.style.boxShadow;
+                    resultContainer.style.boxShadow = 'none';
+
                     const canvas = await html2canvas(mapContainer, {
-                        scale: 2, // Aumenta la risoluzione per una qualità migliore
-                        backgroundColor: null, // Usa lo sfondo del tema
+                        scale: 2,
+                        backgroundColor: window.getComputedStyle(mapContainer).backgroundColor,
                         useCORS: true
                     });
                     
-                    const jpegUrl = canvas.toDataURL('image/jpeg', 0.95); // Qualità 95%
+                    resultContainer.style.boxShadow = originalShadow;
+                    
+                    const jpegUrl = canvas.toDataURL('image/jpeg', 0.95);
                     
                     const link = document.createElement('a');
                     link.href = jpegUrl;
-                    link.download = 'mappa-mentale.jpeg';
+                    link.download = 'mappa-concettuale.jpeg';
                     document.body.appendChild(link);
                     link.click();
                     document.body.removeChild(link);
@@ -388,47 +437,117 @@
                 }
             }
 
-            // --- Chiamate API (MODIFICATE PER LA SICUREZZA) ---
-        
-            async function generateTextFromSearchQuery(query) {
-                // Ora chiama il nostro endpoint sicuro
-                const response = await fetch('/api/generate', {
+            // --- Chiamate API ---
+            
+            async function callGeminiApi(prompt, jsonSchema = null) {
+                const apiKey = ""; // Lasciare vuoto
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
+                
+                const payload = {
+                    contents: [{ role: "user", parts: [{ text: prompt }] }],
+                    generationConfig: {}
+                };
+
+                if (jsonSchema) {
+                    payload.generationConfig.responseMimeType = "application/json";
+                    payload.generationConfig.responseSchema = jsonSchema;
+                }
+
+                const response = await fetch(apiUrl, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ query: query }) // Invia la query di ricerca
+                    body: JSON.stringify(payload)
                 });
 
                 if (!response.ok) {
-                    const err = await response.json();
-                    throw new Error(err.error || "Errore durante la ricerca.");
+                    const errorBody = await response.text();
+                    console.error("API Error Response:", errorBody);
+                    throw new Error(`Errore dall'API: ${response.statusText}`);
                 }
-                return await response.text();
+
+                const result = await response.json();
+                if (result.candidates && result.candidates.length > 0 &&
+                    result.candidates[0].content && result.candidates[0].content.parts &&
+                    result.candidates[0].content.parts.length > 0) {
+                    const text = result.candidates[0].content.parts[0].text;
+                    return jsonSchema ? JSON.parse(text) : text;
+                } else {
+                    console.warn("Risposta API inattesa:", result);
+                    if (result.promptFeedback && result.promptFeedback.blockReason) {
+                         throw new Error(`Richiesta bloccata per: ${result.promptFeedback.blockReason}. Prova a modificare il testo.`);
+                    }
+                    throw new Error("La risposta dell'API era vuota o non valida.");
+                }
             }
-            
-            async function getMindMapStructure(text) {
-                // Ora chiama il nostro endpoint sicuro
-                const response = await fetch('/api/generate', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ text: text }) // Invia il testo da analizzare
-                });
-                
-                if (!response.ok) {
-                    const err = await response.json();
-                    throw new Error(err.error || "Errore durante l'analisi della struttura.");
+
+            async function getMindMapStructureAndStyle(text, concepts, graphics) {
+                let prompt = `Analizza il seguente testo e crea una struttura per una mappa concettuale in formato JSON.
+                Inoltre, genera del codice CSS per personalizzare lo stile della mappa in base alle istruzioni grafiche fornite.
+
+                Testo da analizzare:
+                ---
+                ${text}
+                ---
+                `;
+
+                if (concepts) {
+                    prompt += `\nIstruzioni sui concetti: Dai particolare importanza e, se possibile, crea rami principali per i seguenti concetti: "${concepts}".\n`;
                 }
-                // La risposta dal nostro backend è già il testo JSON, quindi lo parsiamo
-                const resultText = await response.text();
-                return JSON.parse(resultText);
+
+                if (graphics) {
+                     prompt += `\nIstruzioni grafiche: Applica le seguenti regole di stile: "${graphics}". Genera codice CSS valido che possa essere applicato a classi come .central-topic, .main-branch-title, .sub-branch, etc. per realizzare queste istruzioni.\n`;
+                } else {
+                    prompt += `\nIstruzioni grafiche: Nessuna istruzione specifica, non generare CSS personalizzato.\n`;
+                }
+                
+                prompt += `\nFornisci una risposta JSON con due chiavi: "mindMap" (contenente l'oggetto della mappa concettuale con "centralTopic" e "mainBranches") e "customCss" (una stringa contenente il CSS generato, o una stringa vuota se non ci sono istruzioni grafiche).`
+
+                const schema = {
+                    type: "OBJECT",
+                    properties: {
+                        "mindMap": {
+                            type: "OBJECT",
+                            properties: {
+                                "centralTopic": { "type": "STRING" },
+                                "mainBranches": {
+                                    type: "ARRAY",
+                                    items: {
+                                        type: "OBJECT",
+                                        properties: {
+                                            "title": { "type": "STRING" },
+                                            "subBranches": {
+                                                type: "ARRAY",
+                                                items: { "type": "STRING" }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        "customCss": { "type": "STRING" }
+                    }
+                };
+
+                const result = await callGeminiApi(prompt, schema);
+                return { structure: result.mindMap, css: result.customCss };
             }
 
             // --- Rendering della Mappa HTML ---
-            function displayHtmlMindMap(structure) {
+            function displayHtmlMindMap(structure, customCss) {
                 outputSection.innerHTML = '';
                 if (!structure) return;
 
-                const styleClass = styleSelect.value;
+                const existingCustomStyle = document.getElementById('custom-mindmap-style');
+                if(existingCustomStyle) existingCustomStyle.remove();
 
+                if (customCss) {
+                    const styleTag = document.createElement('style');
+                    styleTag.id = 'custom-mindmap-style';
+                    styleTag.textContent = customCss;
+                    document.head.appendChild(styleTag);
+                }
+
+                const styleClass = styleSelect.value;
                 const mapContainer = document.createElement('div');
                 mapContainer.className = `mind-map-container ${styleClass}`;
 
@@ -463,9 +582,9 @@
                 mapContainer.appendChild(branchesContainer);
 
                 const resultContainer = document.createElement('div');
-                resultContainer.className = 'p-4 bg-sky-100/50 rounded-lg border-2 border-dashed border-sky-200 space-y-4';
+                resultContainer.className = 'result-container-class p-4 bg-sky-100/50 rounded-lg border-2 border-dashed border-sky-200 space-y-4';
                 const title = document.createElement('h3');
-                title.textContent = "Ecco la tua Mappa Mentale";
+                title.textContent = "Ecco la tua Mappa Concettuale";
                 title.className = "text-xl font-semibold text-center text-sky-800";
                 
                 const buttonsWrapper = document.createElement('div');
