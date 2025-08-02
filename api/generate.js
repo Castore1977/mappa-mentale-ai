@@ -18,37 +18,49 @@ function extractJson(text) {
   return text;
 }
 
-// **NUOVA FUNZIONE**
-// Sanifica la struttura della mappa per garantire che tutti i campi di testo siano stringhe.
+// Funzione per sanificare la struttura della mappa, assicurando che tutti i campi siano stringhe valide.
 function sanitizeMapStructure(mindMap) {
     if (!mindMap || typeof mindMap !== 'object') return null;
 
-    const getString = (value, fallback) => {
-        if (typeof value === 'string') return value;
+    // Funzione interna per estrarre testo in modo sicuro
+    const getString = (value) => {
+        if (typeof value === 'string') return value.trim();
         if (typeof value === 'object' && value !== null) {
-            // Cerca una chiave comune o prendi il primo valore
-            return String(value.text || value.title || value.topic || Object.values(value)[0] || fallback);
+            const potentialKey = Object.values(value)[0];
+            return String(potentialKey || '').trim();
         }
-        return String(value || fallback);
+        return String(value || '').trim();
     };
 
-    mindMap.centralTopic = getString(mindMap.centralTopic, 'Argomento Centrale');
+    mindMap.centralTopic = getString(mindMap.centralTopic);
+    if (!mindMap.centralTopic) return null; // Se non c'è un argomento centrale, la mappa non è valida.
 
     if (!Array.isArray(mindMap.mainBranches)) {
         mindMap.mainBranches = [];
     }
 
-    mindMap.mainBranches = mindMap.mainBranches.map(branch => {
-        if (!branch || typeof branch !== 'object') return null;
-        branch.title = getString(branch.title, 'Ramo Principale');
+    // **LOGICA DI FILTRAGGIO MIGLIORATA**
+    // Mappiamo e filtriamo i rami per scartare quelli non validi.
+    mindMap.mainBranches = mindMap.mainBranches
+        .map(branch => {
+            if (!branch || typeof branch !== 'object') return null;
+            
+            const title = getString(branch.title);
+            // Scartiamo il ramo se il titolo è vuoto o un segnaposto generico.
+            if (!title || title.toLowerCase() === 'ramo principale') return null;
 
-        if (!Array.isArray(branch.subBranches)) {
-            branch.subBranches = [];
-        }
+            branch.title = title;
 
-        branch.subBranches = branch.subBranches.map(sub => getString(sub, 'Sotto-ramo')).filter(Boolean);
-        return branch;
-    }).filter(Boolean);
+            if (Array.isArray(branch.subBranches)) {
+                branch.subBranches = branch.subBranches
+                    .map(sub => getString(sub))
+                    .filter(sub => sub && sub.toLowerCase() !== 'sotto-ramo'); // Filtra anche i sotto-rami
+            } else {
+                branch.subBranches = [];
+            }
+            return branch;
+        })
+        .filter(Boolean); // Rimuove tutti gli elementi null dall'array
 
     return mindMap;
 }
@@ -86,7 +98,8 @@ export default async function handler(req, res) {
 
       case 'generateMap':
         isJsonResponse = true;
-        prompt = `Analizza il seguente testo e crea una struttura per una mappa concettuale in formato JSON. Inoltre, genera del codice CSS per personalizzare lo stile della mappa in base alle istruzioni grafiche fornite.
+        prompt = `Analizza il seguente testo e crea una struttura per una mappa concettuale in formato JSON.
+        IMPORTANTE: Ogni ramo e sotto-ramo DEVE avere un titolo significativo estratto dal testo. Non creare mai rami con titoli vuoti o generici come "Ramo Principale".
 
         Testo da analizzare:
         ---
@@ -118,10 +131,9 @@ export default async function handler(req, res) {
             const cleanJsonString = extractJson(responseText);
             let parsedJson = JSON.parse(cleanJsonString);
 
-            // **CONTROLLO E SANIFICAZIONE DELLA STRUTTURA**
             const sanitizedMap = sanitizeMapStructure(parsedJson.mindMap);
 
-            if (!sanitizedMap || !sanitizedMap.centralTopic) {
+            if (!sanitizedMap) {
                 console.error("La struttura della mappa sanificata non è valida:", sanitizedMap);
                 throw new Error("La struttura della mappa generata dall'IA non è valida o è vuota.");
             }
