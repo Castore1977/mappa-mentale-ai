@@ -390,7 +390,6 @@
                     });
 
                     // **CONTROLLO DI VALIDITÀ NEL FRONTEND**
-                    // Preveniamo il fallimento silenzioso controllando la risposta.
                     if (!responseData || !responseData.structure || !responseData.structure.centralTopic) {
                         throw new Error("Il server ha restituito una struttura dati non valida. Riprova o modifica il testo.");
                     }
@@ -467,6 +466,12 @@
                 outputSection.innerHTML = '';
                 if (!structure) return;
 
+                const ensureString = (value) => {
+                    if (typeof value === 'string') return value;
+                    if (value === null || value === undefined) return '';
+                    return String(value);
+                };
+
                 const existingCustomStyle = document.getElementById('custom-mindmap-style');
                 if(existingCustomStyle) existingCustomStyle.remove();
 
@@ -483,7 +488,7 @@
 
                 const centralDiv = document.createElement('div');
                 centralDiv.className = 'central-topic';
-                centralDiv.textContent = structure.centralTopic;
+                centralDiv.textContent = ensureString(structure.centralTopic);
                 mapContainer.appendChild(centralDiv);
 
                 const branchesContainer = document.createElement('div');
@@ -494,7 +499,7 @@
                     mainBranchDiv.className = 'main-branch';
                     const branchTitle = document.createElement('div');
                     branchTitle.className = 'main-branch-title';
-                    branchTitle.textContent = branchData.title;
+                    branchTitle.textContent = ensureString(branchData.title);
                     mainBranchDiv.appendChild(branchTitle);
                     if (branchData.subBranches && branchData.subBranches.length > 0) {
                         const subBranchesContainer = document.createElement('div');
@@ -502,7 +507,7 @@
                         branchData.subBranches.forEach(subBranchText => {
                             const subBranchDiv = document.createElement('div');
                             subBranchDiv.className = 'sub-branch';
-                            subBranchDiv.textContent = subBranchText;
+                            subBranchDiv.textContent = ensureString(subBranchText);
                             subBranchesContainer.appendChild(subBranchDiv);
                         });
                         mainBranchDiv.appendChild(subBranchesContainer);
