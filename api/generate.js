@@ -31,7 +31,6 @@ export default async function handler(req, res) {
   }
 
   // Recuperiamo la chiave API segreta dalle variabili d'ambiente di Vercel.
-  // Questa chiave NON è visibile nel codice del frontend.
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
     console.error("La variabile d'ambiente GEMINI_API_KEY non è impostata.");
@@ -93,23 +92,38 @@ export default async function handler(req, res) {
 
     // Inviamo la risposta ottenuta dall'IA di nuovo al frontend.
     if (isJsonResponse) {
-        // Se la risposta è una stringa JSON, la analizziamo e la inviamo come oggetto JSON.
         try {
+            // Puliamo e analizziamo la risposta JSON.
             const cleanJsonString = extractJson(responseText);
             const parsedJson = JSON.parse(cleanJsonString);
-            res.status(200).json(parsedJson);
+
+            // **CONTROLLO DI VALIDITÀ**
+            // Verifichiamo che la struttura ricevuta sia quella che ci aspettiamo.
+            if (!parsedJson.mindMap || !parsedJson.mindMap.centralTopic) {
+                console.error("JSON ricevuto dall'IA non ha la struttura attesa (manca mindMap o centralTopic):", parsedJson);
+                throw new Error("La struttura della mappa generata dall'IA non è valida.");
+            }
+            
+            // Creiamo un oggetto risposta pulito per il frontend.
+            const finalResponse = {
+                structure: parsedJson.mindMap,
+                css: parsedJson.customCss || ''
+            };
+
+            res.status(200).json(finalResponse);
+
         } catch (e) {
-            console.error("Errore nel parsing del JSON ricevuto dall'IA:", e);
+            console.error("Errore nel parsing o nella validazione del JSON ricevuto dall'IA:", e.message);
             console.error("Testo problematico ricevuto:", responseText);
             res.status(500).json({ error: "La risposta dell'IA non era in un formato JSON valido e non è stato possibile analizzarla." });
         }
     } else {
-        // Altrimenti (per sintesi e ricerca), inviamo il testo come JSON per coerenza.
+        // Altrimenti (per sintesi e ricerca), inviamo il testo come JSON.
         res.status(200).json(responseText);
     }
 
   } catch (error) {
-    console.error("Errore nella funzione API di Vercel:", error);
+    console.error("Errore generico nella funzione API di Vercel:", error);
     res.status(500).json({ error: "Si è verificato un errore interno durante l'elaborazione della richiesta." });
   }
 }

@@ -382,14 +382,20 @@
                     const keyConcepts = keyConceptsInput.value.trim();
                     const graphicInstructions = graphicInstructionsInput.value.trim();
 
-                    const { structure, css } = await callBackendApi({
+                    const responseData = await callBackendApi({
                         promptType: 'generateMap',
                         text: textForAnalysis,
                         concepts: keyConcepts,
                         graphics: graphicInstructions
                     });
+
+                    // **CONTROLLO DI VALIDITÀ NEL FRONTEND**
+                    // Preveniamo il fallimento silenzioso controllando la risposta.
+                    if (!responseData || !responseData.structure || !responseData.structure.centralTopic) {
+                        throw new Error("Il server ha restituito una struttura dati non valida. Riprova o modifica il testo.");
+                    }
                     
-                    displayHtmlMindMap(structure, css);
+                    displayHtmlMindMap(responseData.structure, responseData.css);
 
                 } catch (error) {
                     showError(error.message, isRegenerating);
