@@ -4,6 +4,23 @@
 
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
+// Funzione helper per estrarre una stringa JSON da un testo che potrebbe contenerla.
+// Gestisce i casi in cui il JSON è avvolto da ```json ... ``` o da altro testo.
+function extractJson(text) {
+  const match = text.match(/```(json)?\s*([\s\S]*?)\s*```/);
+  if (match && match[2]) {
+    return match[2];
+  }
+  // Fallback per trovare il primo '{' e l'ultimo '}'
+  const jsonStart = text.indexOf('{');
+  const jsonEnd = text.lastIndexOf('}');
+  if (jsonStart !== -1 && jsonEnd > jsonStart) {
+    return text.substring(jsonStart, jsonEnd + 1);
+  }
+  return text; // Ritorna il testo originale se non trova un JSON pulito
+}
+
+
 // La funzione handler è il punto di ingresso per la Serverless Function di Vercel.
 // Riceve la richiesta (req) dal frontend e l'oggetto risposta (res) da popolare.
 export default async function handler(req, res) {
@@ -77,7 +94,15 @@ export default async function handler(req, res) {
     // Inviamo la risposta ottenuta dall'IA di nuovo al frontend.
     if (isJsonResponse) {
         // Se la risposta è una stringa JSON, la analizziamo e la inviamo come oggetto JSON.
-        res.status(200).json(JSON.parse(responseText));
+        try {
+            const cleanJsonString = extractJson(responseText);
+            const parsedJson = JSON.parse(cleanJsonString);
+            res.status(200).json(parsedJson);
+        } catch (e) {
+            console.error("Errore nel parsing del JSON ricevuto dall'IA:", e);
+            console.error("Testo problematico ricevuto:", responseText);
+            res.status(500).json({ error: "La risposta dell'IA non era in un formato JSON valido e non è stato possibile analizzarla." });
+        }
     } else {
         // Altrimenti (per sintesi e ricerca), inviamo il testo come JSON per coerenza.
         res.status(200).json(responseText);
