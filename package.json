@@ -8,5 +8,16 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "description": ""
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Castore1977/mappa-mentale-ai.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Castore1977/mappa-mentale-ai/issues"
+  },
+  "homepage": "https://github.com/Castore1977/mappa-mentale-ai#readme",
+  "description": "",
+  "dependencies": {
+    "@google/generative-ai": "^0.24.1"
+  }
 }

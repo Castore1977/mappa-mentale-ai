@@ -1,66 +1,90 @@
-// File: /api/generate.js (Versione FINALE con Errori Dettagliati)
+// Per far funzionare questo codice su Vercel, è necessario creare un file
+// `package.json` nella cartella principale del progetto eseguendo `npm init -y`
+// e poi installare la dipendenza con `npm i @google/generative-ai`.
 
+import { GoogleGenerativeAI } from "@google/generative-ai";
+
+// La funzione handler è il punto di ingresso per la Serverless Function di Vercel.
+// Riceve la richiesta (req) dal frontend e l'oggetto risposta (res) da popolare.
 export default async function handler(req, res) {
-    if (req.method !== 'POST') {
-        return res.status(405).json({ error: 'Method Not Allowed' });
-    }
+  // Per sicurezza, accettiamo solo richieste di tipo POST.
+  if (req.method !== 'POST') {
+    res.setHeader('Allow', 'POST');
+    return res.status(405).json({ error: 'Method Not Allowed' });
+  }
 
-    try {
-        const apiKey = process.env.GEMINI_API_KEY;
-        if (!apiKey) {
-            throw new Error("La chiave API non è configurata correttamente sul server (variabile d'ambiente mancante).");
+  // Recuperiamo la chiave API segreta dalle variabili d'ambiente di Vercel.
+  // Questa chiave NON è visibile nel codice del frontend.
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) {
+    console.error("La variabile d'ambiente GEMINI_API_KEY non è impostata.");
+    return res.status(500).json({ error: "La chiave API non è stata configurata correttamente sul server." });
+  }
+
+  // Inizializziamo il client dell'API di Google.
+  const genAI = new GoogleGenerativeAI(apiKey);
+  const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash-preview-05-20" });
+
+  try {
+    // Estraiamo i dati inviati dal corpo della richiesta del frontend.
+    const { promptType, text, concepts, graphics } = req.body;
+
+    let prompt;
+    let isJsonResponse = false;
+    
+    // Costruiamo il prompt specifico per l'IA in base all'azione richiesta dal frontend.
+    switch (promptType) {
+      case 'summarize':
+        prompt = `Fornisci un riassunto conciso e ben strutturato del seguente testo, mantenendo i punti chiave e le relazioni logiche. Il riassunto deve essere ideale per essere poi trasformato in una mappa concettuale. Testo:\n\n${text}`;
+        break;
+      
+      case 'search':
+        prompt = `Fornisci un testo completo e ben strutturato sull'argomento: "${text}". Il testo deve essere abbastanza dettagliato da poterci creare una mappa concettuale approfondita. Spiega i concetti principali, le definizioni, gli esempi e le eventuali connessioni con altri argomenti.`;
+        break;
+
+      case 'generateMap':
+        isJsonResponse = true; // Indichiamo che ci aspettiamo una risposta JSON dall'IA.
+        prompt = `Analizza il seguente testo e crea una struttura per una mappa concettuale in formato JSON. Inoltre, genera del codice CSS per personalizzare lo stile della mappa in base alle istruzioni grafiche fornite.
+
+        Testo da analizzare:
+        ---
+        ${text}
+        ---
+        `;
+
+        if (concepts) {
+            prompt += `\nIstruzioni sui concetti: Dai particolare importanza e, se possibile, crea rami principali per i seguenti concetti: "${concepts}".\n`;
         }
 
-        const { text, query } = req.body;
-        let modelResponse;
-        let apiUrl;
-        let payload;
-
-        // Ho unificato il modello a gemini-1.5-flash per coerenza
-        const model = "gemini-1.5-flash";
-        apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
-
-        if (query) {
-            const prompt = `Fornisci un testo dettagliato e ben strutturato sull'argomento: "${query}". Il testo deve essere di alta qualità, accurato e adatto per essere trasformato in una mappa mentale complessa. Includi definizioni, concetti chiave, principi fondamentali, regole, esempi pratici e possibili applicazioni o implicazioni.`;
-            payload = { contents: [{ role: "user", parts: [{ text: prompt }] }] };
-        } else if (text) {
-            const schema = { type: "OBJECT", properties: { centralTopic: { type: "STRING" }, mainBranches: { type: "ARRAY", items: { type: "OBJECT", properties: { title: { type: "STRING" }, subBranches: { type: "ARRAY", items: { type: "STRING" } } }, required: ["title"] } } }, required: ["centralTopic", "mainBranches"] };
-            const prompt = `Analizza il seguente testo e strutturalo in una gerarchia per una mappa mentale. Estrai il concetto centrale, 5-6 rami principali e per ognuno 2-4 sotto-rami molto concisi. Sii breve e vai dritto al punto. Testo: "${text}"`;
-            payload = { contents: [{ role: "user", parts: [{ text: prompt }] }], generationConfig: { responseMimeType: "application/json", responseSchema: schema } };
+        if (graphics) {
+             prompt += `\nIstruzioni grafiche: Applica le seguenti regole di stile: "${graphics}". Genera codice CSS valido che possa essere applicato a classi come .central-topic, .main-branch-title, .sub-branch, etc. per realizzare queste istruzioni.\n`;
         } else {
-            return res.status(400).json({ error: "Nessun testo o query fornita." });
-        }
-
-        const response = await fetch(apiUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-        });
-
-        // --- GESTIONE ERRORI DETTAGLIATA ---
-        if (!response.ok) {
-            // Leggiamo il corpo dell'errore restituito da Google
-            const errorDetails = await response.json();
-            // Lo stampiamo nei log di Vercel per poterlo vedere
-            console.error('Dettagli errore da Google:', JSON.stringify(errorDetails, null, 2));
-            // Prepariamo un messaggio di errore chiaro per il frontend
-            const errorMessage = errorDetails?.error?.message || "L'API di Google ha restituito un errore sconosciuto.";
-            throw new Error(`Errore da Google: ${errorMessage}`);
-        }
-        // --- FINE GESTIONE ERRORI ---
-
-        modelResponse = await response.json();
-        
-        const responseText = modelResponse.candidates?.[0]?.content?.parts?.[0]?.text;
-        if (!responseText) {
-            console.error("Risposta da Google senza contenuto:", JSON.stringify(modelResponse, null, 2));
-            throw new Error("L'API di Gemini ha restituito una risposta vuota, forse a causa dei filtri di sicurezza.");
+            prompt += `\nIstruzioni grafiche: Nessuna istruzione specifica, non generare CSS personalizzato.\n`;
         }
         
-        res.status(200).send(responseText);
+        prompt += `\nFornisci una risposta JSON con due chiavi: "mindMap" (contenente l'oggetto della mappa concettuale con "centralTopic" e "mainBranches") e "customCss" (una stringa contenente il CSS generato, o una stringa vuota se non ci sono istruzioni grafiche).`;
+        break;
 
-    } catch (error) {
-        console.error("ERRORE FINALE NELLA FUNZIONE:", error);
-        res.status(500).json({ error: error.message });
+      default:
+        return res.status(400).json({ error: 'Tipo di prompt non valido.' });
     }
+
+    // Eseguiamo la chiamata effettiva all'API di Google Generative AI.
+    const result = await model.generateContent(prompt);
+    const response = result.response;
+    const responseText = response.text();
+
+    // Inviamo la risposta ottenuta dall'IA di nuovo al frontend.
+    if (isJsonResponse) {
+        // Se la risposta è una stringa JSON, la analizziamo e la inviamo come oggetto JSON.
+        res.status(200).json(JSON.parse(responseText));
+    } else {
+        // Altrimenti (per sintesi e ricerca), inviamo il testo come JSON per coerenza.
+        res.status(200).json(responseText);
+    }
+
+  } catch (error) {
+    console.error("Errore nella funzione API di Vercel:", error);
+    res.status(500).json({ error: "Si è verificato un errore interno durante l'elaborazione della richiesta." });
+  }
 }

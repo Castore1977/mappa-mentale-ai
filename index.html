@@ -326,13 +326,12 @@
                 summarizeSpinner.classList.remove('hidden');
 
                 try {
-                    const prompt = `Fornisci un riassunto conciso e ben strutturato del seguente testo, mantenendo i punti chiave e le relazioni logiche. Il riassunto deve essere ideale per essere poi trasformato in una mappa concettuale. Testo:\n\n${textToSummarize}`;
-                    const summary = await callGeminiApi(prompt);
+                    const summary = await callBackendApi({ promptType: 'summarize', text: textToSummarize });
                     summarizedText.value = summary;
                     summaryContainer.classList.remove('hidden');
                 } catch (error) {
                     console.error("Errore durante la sintesi:", error);
-                    showError("Si è verificato un errore durante la sintesi del testo.");
+                    showError(error.message || "Si è verificato un errore durante la sintesi del testo.");
                 } finally {
                     summarizeBtn.disabled = false;
                     summarizeBtnText.textContent = 'Sintetizza Testo';
@@ -372,8 +371,7 @@
                             const query = searchQuery.value.trim();
                             if (!query) throw new Error("Per favore, inserisci un termine di ricerca.");
                             
-                            const searchPrompt = `Fornisci un testo completo e ben strutturato sull'argomento: "${query}". Il testo deve essere abbastanza dettagliato da poterci creare una mappa concettuale approfondita. Spiega i concetti principali, le definizioni, gli esempi e le eventuali connessioni con altri argomenti.`;
-                            textForAnalysis = await callGeminiApi(searchPrompt);
+                            textForAnalysis = await callBackendApi({ promptType: 'search', text: query });
                             
                             generatedText.value = textForAnalysis;
                             searchResultContainer.classList.remove('hidden');
@@ -384,7 +382,12 @@
                     const keyConcepts = keyConceptsInput.value.trim();
                     const graphicInstructions = graphicInstructionsInput.value.trim();
 
-                    const { structure, css } = await getMindMapStructureAndStyle(textForAnalysis, keyConcepts, graphicInstructions);
+                    const { structure, css } = await callBackendApi({
+                        promptType: 'generateMap',
+                        text: textForAnalysis,
+                        concepts: keyConcepts,
+                        graphics: graphicInstructions
+                    });
                     
                     displayHtmlMindMap(structure, css);
 
@@ -437,99 +440,20 @@
                 }
             }
 
-            // --- Chiamate API ---
-            
-            async function callGeminiApi(prompt, jsonSchema = null) {
-                const apiKey = ""; // Lasciare vuoto
-                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
-                
-                const payload = {
-                    contents: [{ role: "user", parts: [{ text: prompt }] }],
-                    generationConfig: {}
-                };
-
-                if (jsonSchema) {
-                    payload.generationConfig.responseMimeType = "application/json";
-                    payload.generationConfig.responseSchema = jsonSchema;
-                }
-
-                const response = await fetch(apiUrl, {
+            // --- Chiamata al Backend ---
+            async function callBackendApi(body) {
+                const response = await fetch('/api/generate', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
+                    body: JSON.stringify(body)
                 });
 
                 if (!response.ok) {
-                    const errorBody = await response.text();
-                    console.error("API Error Response:", errorBody);
-                    throw new Error(`Errore dall'API: ${response.statusText}`);
+                    const err = await response.json();
+                    throw new Error(err.error || "Si è verificato un errore nel server.");
                 }
 
-                const result = await response.json();
-                if (result.candidates && result.candidates.length > 0 &&
-                    result.candidates[0].content && result.candidates[0].content.parts &&
-                    result.candidates[0].content.parts.length > 0) {
-                    const text = result.candidates[0].content.parts[0].text;
-                    return jsonSchema ? JSON.parse(text) : text;
-                } else {
-                    console.warn("Risposta API inattesa:", result);
-                    if (result.promptFeedback && result.promptFeedback.blockReason) {
-                         throw new Error(`Richiesta bloccata per: ${result.promptFeedback.blockReason}. Prova a modificare il testo.`);
-                    }
-                    throw new Error("La risposta dell'API era vuota o non valida.");
-                }
-            }
-
-            async function getMindMapStructureAndStyle(text, concepts, graphics) {
-                let prompt = `Analizza il seguente testo e crea una struttura per una mappa concettuale in formato JSON.
-                Inoltre, genera del codice CSS per personalizzare lo stile della mappa in base alle istruzioni grafiche fornite.
-
-                Testo da analizzare:
-                ---
-                ${text}
-                ---
-                `;
-
-                if (concepts) {
-                    prompt += `\nIstruzioni sui concetti: Dai particolare importanza e, se possibile, crea rami principali per i seguenti concetti: "${concepts}".\n`;
-                }
-
-                if (graphics) {
-                     prompt += `\nIstruzioni grafiche: Applica le seguenti regole di stile: "${graphics}". Genera codice CSS valido che possa essere applicato a classi come .central-topic, .main-branch-title, .sub-branch, etc. per realizzare queste istruzioni.\n`;
-                } else {
-                    prompt += `\nIstruzioni grafiche: Nessuna istruzione specifica, non generare CSS personalizzato.\n`;
-                }
-                
-                prompt += `\nFornisci una risposta JSON con due chiavi: "mindMap" (contenente l'oggetto della mappa concettuale con "centralTopic" e "mainBranches") e "customCss" (una stringa contenente il CSS generato, o una stringa vuota se non ci sono istruzioni grafiche).`
-
-                const schema = {
-                    type: "OBJECT",
-                    properties: {
-                        "mindMap": {
-                            type: "OBJECT",
-                            properties: {
-                                "centralTopic": { "type": "STRING" },
-                                "mainBranches": {
-                                    type: "ARRAY",
-                                    items: {
-                                        type: "OBJECT",
-                                        properties: {
-                                            "title": { "type": "STRING" },
-                                            "subBranches": {
-                                                type: "ARRAY",
-                                                items: { "type": "STRING" }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        },
-                        "customCss": { "type": "STRING" }
-                    }
-                };
-
-                const result = await callGeminiApi(prompt, schema);
-                return { structure: result.mindMap, css: result.customCss };
+                return response.json();
             }
 
             // --- Rendering della Mappa HTML ---
